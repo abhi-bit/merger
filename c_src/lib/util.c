@@ -25,7 +25,7 @@ merger_make_error(ErlNifEnv* env, ERL_NIF_TERM data)
 }
 
 merger_item_t*
-merger_item_create(ERL_NIF_TERM val)
+merger_item_create(ERL_NIF_TERM key, ERL_NIF_TERM val)
 {
     merger_item_t* ret = (merger_item_t*) malloc(sizeof(merger_item_t));
     if(!ret) return NULL;
@@ -36,7 +36,9 @@ merger_item_create(ERL_NIF_TERM val)
         return NULL;
     }
 
-    ret->data = enif_make_copy(ret->env, val);
+    if (key != 0)
+        ret->key = enif_make_copy(ret->env, key);
+    ret->val = enif_make_copy(ret->env, val);
 
     return ret;
 }

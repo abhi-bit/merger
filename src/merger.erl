@@ -5,7 +5,7 @@
 -export([
     new/0, new/1, new/2,
     get/1,
-    put/2,
+    put/3,
     del/2,
     clear/1,
     size/1,
@@ -44,7 +44,7 @@ get(_Heap) ->
     ?NOT_LOADED.
 
 
-put(_Heap, _Val) ->
+put(_Heap, _Key, _Val) ->
     ?NOT_LOADED.
 
 

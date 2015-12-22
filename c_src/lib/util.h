@@ -7,11 +7,12 @@
 typedef struct _merger_item_t
 {
     ErlNifEnv*              env;
-    ERL_NIF_TERM            data;
+    ERL_NIF_TERM            key;
+    ERL_NIF_TERM            val;
 } merger_item_t;
 
 
-merger_item_t* merger_item_create(ERL_NIF_TERM val);
+merger_item_t* merger_item_create(ERL_NIF_TERM key, ERL_NIF_TERM val);
 void merger_item_destroy(merger_item_t* item);
 
 ERL_NIF_TERM merger_make_atom(ErlNifEnv* env, const char* name);
