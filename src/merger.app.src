@@ -1,0 +1,6 @@
+{application, merger, [
+    {description, "C based view-merger."},
+    {vsn, git},
+    {registered, []},
+    {applications, [kernel, stdlib, sasl]}
+]}.
