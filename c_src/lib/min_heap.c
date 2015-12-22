@@ -42,11 +42,11 @@ void swap(merger_item_t *n1, merger_item_t *n2)
 void min_heap_heapify(min_heap_t *hp, int i)
 {
     int smallest = (LCHILD(i) < hp->size &&
-                    enif_compare(hp->elem[LCHILD(i)].data, hp->elem[i].data))
+                    enif_compare(hp->elem[LCHILD(i)].key, hp->elem[i].key))
                     ? LCHILD(i) : i;
 
     if (RCHILD(i) < hp->size &&
-            enif_compare(hp->elem[RCHILD(i)].data, hp->elem[smallest].data)) {
+            enif_compare(hp->elem[RCHILD(i)].key, hp->elem[smallest].key)) {
         smallest = RCHILD(i);
     }
 
@@ -64,10 +64,11 @@ int min_heap_put(min_heap_t *hp, merger_item_t *n) {
     }
 
     merger_item_t item;
-    item.data = n->data;
+    item.key = n->key;
+    item.val = n->val;
 
     int i = (hp->size)++;
-    while (i && enif_compare(item.data, hp->elem[PARENT(i)].data)) {
+    while (i && enif_compare(item.key, hp->elem[PARENT(i)].key)) {
         hp->elem[i] = hp->elem[PARENT(i)];
         i = PARENT(i);
     }
@@ -90,8 +91,9 @@ void min_heap_delete_min_node(min_heap_t *hp) {
 int min_heap_get(min_heap_t *hp, void **value) {
     *value = NULL;
 
-    merger_item_t *n = (merger_item_t *)malloc(sizeof(merger_item_t));
-    n->data = hp->elem[0].data;
+    merger_item_t *n = malloc(sizeof(merger_item_t));
+    n->key = hp->elem[0].key;
+    n->val = hp->elem[0].val;
 
     *value = n;
 
@@ -107,5 +109,5 @@ void min_heap_iter(min_heap_t *hp, int i) {
         min_heap_iter(hp, RCHILD(i));
     }
 
-    printf("%s\n", (const char *) (&hp->elem[i].data));
+    printf("%s\n", (const char *) (&hp->elem[i].key));
 }

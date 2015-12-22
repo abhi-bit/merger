@@ -111,13 +111,7 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if(!ret)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
-    if(val == NULL && argc == 2) {
-        return merger_make_error(env, MERGER_ATOM_NOT_FOUND);
-    } else if(val == NULL && argc == 3) {
-        return merger_make_ok(env, argv[2]);
-    } else {
-        return merger_make_ok(env, enif_make_copy(env, val->data));
-    }
+    return merger_make_ok(env, enif_make_tuple2(env, val->key, val->val));
 }
 
 
@@ -128,12 +122,12 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     merger_item_t* item;
     int ret;
 
-    if(argc != 2)
+    if(argc != 3)
         return enif_make_badarg(env);
     if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
 
-    item = merger_item_create(argv[1]);
+    item = merger_item_create(argv[1], argv[2]);
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
@@ -198,7 +192,7 @@ merger_nif_heap_destroy(ErlNifEnv *env, void *obj)
 static ErlNifFunc nif_funcs[] = {
     {"new_nif", 1, merger_nif_new},
     {"get", 1, merger_nif_heap_get},
-    {"put", 2, merger_nif_heap_put},
+    {"put", 3, merger_nif_heap_put},
     {"size", 1, merger_nif_heap_size},
     {"keys", 1, merger_nif_heap_list}
 };
