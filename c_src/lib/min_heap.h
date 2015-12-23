@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "util.h"
+#include "erl_nif.h"
 
 #ifndef MINHEAP_H
 #define MINHEAP_H
@@ -55,6 +56,8 @@ int     min_heap_size(min_heap_t *h);
 
 void    min_heap_heapify(min_heap_t *hp, int index);
 void    swap(merger_item_t *n1, merger_item_t *n2);
+
+int     less_fun(ERL_NIF_TERM key1, ERL_NIF_TERM key2);
 
 int     compare(const sized_buf *b1, const sized_buf *b2, collation_mode mode);
 
