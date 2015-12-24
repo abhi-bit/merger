@@ -29,24 +29,45 @@ void swap(merger_item_t *n1, merger_item_t *n2)
     *n2 = temp;
 }
 
-/*int compare(const sized_buf *buf1, const sized_buf *buf2, collation_mode mode)
+int less_fun(merger_item_t elem1, merger_item_t elem2)
 {
-    size_t length = (buf1->size < buf2->size) ? buf1->size : buf2->size;
+    ErlNifBinary key1Bin, key2Bin;
+    char *key1 = NULL, *key2 = NULL;
 
-    if (memcmp(buf1->buf, buf2->buf, length) < 0)
+    //TODO: handle error from ERL_NIF_TERM to ErlNifBinary conversion
+    //0 if it fails, 1 if it suceeds
+    enif_inspect_binary(elem1.env, elem1.key, &key1Bin);
+    enif_inspect_binary(elem2.env, elem2.key, &key2Bin);
+
+    key1 = (char *) enif_alloc(key1Bin.size + 1);
+    memcpy(key1, key1Bin.data, key1Bin.size);
+    key1[key1Bin.size] = '\0';
+
+    key2 = (char *) enif_alloc(key2Bin.size + 1);
+    memcpy(key2, key2Bin.data, key2Bin.size);
+    key2[key2Bin.size] = '\0';
+
+    size_t length = (key2Bin.size < key1Bin.size) ?
+                     key2Bin.size :
+                     key1Bin.size;
+
+    if (memcmp(key1, key2, length) < 0) {
         return 1;
-    else
+    } else {
         return 0;
-}*/
+    }
+
+    //TODO: free key1 and key2
+}
 
 void min_heap_heapify(min_heap_t *hp, int i)
 {
     int smallest = (LCHILD(i) < hp->size &&
-                    enif_compare(hp->elem[LCHILD(i)].key, hp->elem[i].key))
+                    less_fun(hp->elem[LCHILD(i)], hp->elem[i]))
                     ? LCHILD(i) : i;
 
     if (RCHILD(i) < hp->size &&
-            enif_compare(hp->elem[RCHILD(i)].key, hp->elem[smallest].key)) {
+            less_fun(hp->elem[RCHILD(i)], hp->elem[smallest])) {
         smallest = RCHILD(i);
     }
 
@@ -68,7 +89,7 @@ int min_heap_put(min_heap_t *hp, merger_item_t *n) {
     item.val = n->val;
 
     int i = (hp->size)++;
-    while (i && enif_compare(item.key, hp->elem[PARENT(i)].key)) {
+    while (i && less_fun(item, hp->elem[PARENT(i)])) {
         hp->elem[i] = hp->elem[PARENT(i)];
         i = PARENT(i);
     }
