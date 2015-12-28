@@ -16,6 +16,7 @@
 init() ->
     NumScheds = erlang:system_info(schedulers),
     ?NIF_INIT(?MODULE, "merger", NumScheds).
+    %?NIF_INIT(?MODULE, "merger", 0).
 
 
 new() ->

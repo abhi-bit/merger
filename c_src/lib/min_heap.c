@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,8 @@
 
 #include "min_heap.h"
 #include "erl_nif.h"
+
+pthread_mutex_t lock;
 
 int min_heap_size(min_heap_t *hp)
 {
@@ -112,14 +115,20 @@ void min_heap_delete_min_node(min_heap_t *hp) {
 int min_heap_get(min_heap_t *hp, void **value) {
     *value = NULL;
 
-    merger_item_t *n = malloc(sizeof(merger_item_t));
-    n->key = hp->elem[0].key;
-    n->val = hp->elem[0].val;
+    if (min_heap_size(hp) > 0) {
+        merger_item_t *n = malloc(sizeof(merger_item_t));
+        pthread_mutex_lock(&lock);
+        n->key = hp->elem[0].key;
+        n->val = hp->elem[0].val;
 
-    *value = n;
+        *value = n;
 
-    min_heap_delete_min_node(hp);
-    return 1;
+        min_heap_delete_min_node(hp);
+        pthread_mutex_unlock(&lock);
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 void min_heap_iter(min_heap_t *hp, int i) {
