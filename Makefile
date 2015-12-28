@@ -1,4 +1,3 @@
-
 TEST_MODULES = \
     test/etap.beam \
     test/gen_term.beam \

@@ -11,7 +11,7 @@
 main() ->
     {ok, State} = init(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    RandomStrings = [get_random_strings(1000000, 20, AllowedChars)],
+    RandomStrings = [get_random_strings(100000, 20, AllowedChars)],
     io:format("~p~n", [erlang:localtime()]),
     NewState = bench_in(State, lists:nth(1, RandomStrings)),
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),

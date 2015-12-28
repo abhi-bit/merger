@@ -32,15 +32,15 @@ void swap(merger_item_t *n1, merger_item_t *n2)
     *n2 = temp;
 }
 
-int less_fun(merger_item_t elem1, merger_item_t elem2)
+int less_fun(merger_item_t *elem1, merger_item_t *elem2)
 {
     ErlNifBinary key1Bin, key2Bin;
     char *key1 = NULL, *key2 = NULL;
 
     //TODO: handle error from ERL_NIF_TERM to ErlNifBinary conversion
     //0 if it fails, 1 if it suceeds
-    enif_inspect_binary(elem1.env, elem1.key, &key1Bin);
-    enif_inspect_binary(elem2.env, elem2.key, &key2Bin);
+    enif_inspect_binary(elem1->env, elem1->key, &key1Bin);
+    enif_inspect_binary(elem2->env, elem2->key, &key2Bin);
 
     key1 = (char *) enif_alloc(key1Bin.size + 1);
     memcpy(key1, key1Bin.data, key1Bin.size);
@@ -66,11 +66,11 @@ int less_fun(merger_item_t elem1, merger_item_t elem2)
 void min_heap_heapify(min_heap_t *hp, int i)
 {
     int smallest = (LCHILD(i) < hp->size &&
-                    less_fun(hp->elem[LCHILD(i)], hp->elem[i]))
+                    less_fun(&hp->elem[LCHILD(i)], &hp->elem[i]))
                     ? LCHILD(i) : i;
 
     if (RCHILD(i) < hp->size &&
-            less_fun(hp->elem[RCHILD(i)], hp->elem[smallest])) {
+            less_fun(&hp->elem[RCHILD(i)], &hp->elem[smallest])) {
         smallest = RCHILD(i);
     }
 
@@ -92,7 +92,7 @@ int min_heap_put(min_heap_t *hp, merger_item_t *n) {
     item.val = n->val;
 
     int i = (hp->size)++;
-    while (i && less_fun(item, hp->elem[PARENT(i)])) {
+    while (i && less_fun(&item, &hp->elem[PARENT(i)])) {
         hp->elem[i] = hp->elem[PARENT(i)];
         i = PARENT(i);
     }
