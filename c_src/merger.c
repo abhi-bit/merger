@@ -191,8 +191,8 @@ merger_nif_heap_destroy(ErlNifEnv *env, void *obj)
 
 static ErlNifFunc nif_funcs[] = {
     {"new_nif", 1, merger_nif_new},
-    {"get", 1, merger_nif_heap_get},
-    {"put", 3, merger_nif_heap_put},
+    {"out", 1, merger_nif_heap_get},
+    {"in", 3, merger_nif_heap_put},
     {"size", 1, merger_nif_heap_size},
     {"keys", 1, merger_nif_heap_list}
 };

@@ -4,20 +4,18 @@
 
 -export([
     new/0, new/1, new/2,
-    get/1,
-    put/3,
-    del/2,
-    clear/1,
+    out/1,
+    in/3,
     size/1,
-    keys/1,
-    to_list/1
+    keys/1
 ]).
 
 -include("merger.hrl").
 
 
 init() ->
-    ?NIF_INIT(?MODULE, "merger", 0).
+    NumScheds = erlang:system_info(schedulers),
+    ?NIF_INIT(?MODULE, "merger", NumScheds).
 
 
 new() ->
@@ -40,19 +38,11 @@ new_nif(_Options) ->
     ?NOT_LOADED.
 
 
-get(_Heap) ->
+out(_Heap) ->
     ?NOT_LOADED.
 
 
-put(_Heap, _Key, _Val) ->
-    ?NOT_LOADED.
-
-
-del(_Heap, _Key) ->
-    ?NOT_LOADED.
-
-
-clear(_Heap) ->
+in(_Heap, _Key, _Val) ->
     ?NOT_LOADED.
 
 
@@ -61,8 +51,4 @@ size(_Heap) ->
 
 
 keys(_Heap) ->
-    ?NOT_LOADED.
-
-
-to_list(_Heap) ->
     ?NOT_LOADED.

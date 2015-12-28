@@ -10,6 +10,7 @@ clean:
 	./rebar clean
 	rm -rf logs
 	rm test/*.beam
+	rm erl_prog/*.beam
 
 deps: ./deps/
 	./rebar get-deps update-deps
