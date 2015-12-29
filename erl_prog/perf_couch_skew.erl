@@ -13,11 +13,15 @@ main(Count) ->
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
     RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
-    io:format("~p~n", [erlang:localtime()]),
+    Start = now_us(erlang:now()),
     NewState = bench_in(State, lists:nth(1, RandomStrings)),
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),
     _NNewState = bench_out(NewState),
-    io:format("~p~n", [erlang:localtime()]).
+    End = now_us(erlang:now()),
+    io:format("~p ms~n", [(End - Start) / 1000]).
+
+now_us({MegaSecs,Secs,MicroSecs}) ->
+        (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
 
 init() ->
     State = #state{
