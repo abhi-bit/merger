@@ -1,6 +1,6 @@
 -module(perf_couch_skew).
 
--export([main/0, get_random_strings/3]).
+-export([main/1]).
 
 -record(state, {
     rows,
@@ -8,10 +8,11 @@
     poped = []
 }).
 
-main() ->
+main(Count) ->
     {ok, State} = init(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    RandomStrings = [get_random_strings(100000, 20, AllowedChars)],
+    Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
+    RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
     io:format("~p~n", [erlang:localtime()]),
     NewState = bench_in(State, lists:nth(1, RandomStrings)),
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),

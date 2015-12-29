@@ -1,8 +1,8 @@
 -module(perf_merger).
 
--export([main/0]).
+-export([main/1]).
 
-main() ->
+main(Count) ->
     % case whereis(merger) of
     %     undefined ->
     %         ok;
@@ -10,7 +10,7 @@ main() ->
     %         catch exit(Pid, kill)
     % end,
     % erlang:register(merger, self()),
-    % % eprof tracing
+    % eprof tracing
     % eprof:start(),
     % eprof:start_profiling([erlang:whereis(merger)]),
 
@@ -18,7 +18,8 @@ main() ->
     % fprof:trace([start, {file, "fprof.trace"}, verbose, {procs, all}]),
 
     % flame graph
-    code:add_pathz("/tmp"),
+    % code:add_pathz("/tmp"),
+
     % spawn(fun() ->
     %               io:format("Tracing started...\n"),
     %               eflame2:write_trace(global_calls_plus_new_procs, "/tmp/ef.test.0", all, 10*1000),
@@ -27,7 +28,8 @@ main() ->
     %       end),
     {ok, C} = merger:new(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
-    RandomStrings = [get_random_strings(100000, 20, AllowedChars)],
+    Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
+    RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
     io:format("~p~n", [erlang:localtime()]),
     C = bench_in(C, lists:nth(1, RandomStrings)),
     io:format("Queue size: ~p~n", [merger:size(C)]),
@@ -56,10 +58,7 @@ get_random_string(Length, AllowedChars) ->
 bench_in(C, []) ->
     C;
 bench_in(C, [H|T]) ->
-    %% ok = merger:in(C, list_to_binary(H), "foo"),
-    io:format("1st inserting ~p~n", [list_to_binary(H)]),
-    ok = merger:in(C, list_to_binary(H), "foo"),
-    io:format("2nd inserting ~p~n", [list_to_binary(H)]),
+    ok = merger:in(C, H, "foo"),
     bench_in(C, T).
 
 bench_out(C) ->
