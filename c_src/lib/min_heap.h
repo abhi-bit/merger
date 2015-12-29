@@ -57,5 +57,6 @@ void    min_heap_heapify(min_heap_t *hp, int index);
 void    swap(merger_item_t *n1, merger_item_t *n2);
 
 int     compare(const sized_buf *b1, const sized_buf *b2, collation_mode mode);
+void    erl_nif_term_print(merger_item_t term);
 
 #endif

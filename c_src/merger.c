@@ -3,7 +3,6 @@
 #include "lib/min_heap.h"
 #include "lib/util.h"
 
-
 typedef struct {
     min_heap_t*     heap;
     ErlNifMutex*    lock;
@@ -113,7 +112,6 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     return merger_make_ok(env, enif_make_tuple2(env, val->key, val->val));
 }
-
 
 ERL_NIF_TERM
 merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])

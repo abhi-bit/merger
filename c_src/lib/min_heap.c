@@ -37,10 +37,8 @@ int less_fun(merger_item_t *elem1, merger_item_t *elem2)
     ErlNifBinary key1Bin, key2Bin;
     char *key1 = NULL, *key2 = NULL;
 
-    //TODO: handle error from ERL_NIF_TERM to ErlNifBinary conversion
-    //0 if it fails, 1 if it suceeds
-    enif_inspect_binary(elem1->env, elem1->key, &key1Bin);
-    enif_inspect_binary(elem2->env, elem2->key, &key2Bin);
+    if(!enif_inspect_binary(elem1->env, elem1->key, &key1Bin)) return 0;
+    if(!enif_inspect_binary(elem2->env, elem2->key, &key2Bin)) return 0;
 
     key1 = (char *) enif_alloc(key1Bin.size + 1);
     memcpy(key1, key1Bin.data, key1Bin.size);
@@ -60,7 +58,8 @@ int less_fun(merger_item_t *elem1, merger_item_t *elem2)
         return 0;
     }
 
-    //TODO: free key1 and key2
+    free(key1);
+    free(key2);
 }
 
 void min_heap_heapify(min_heap_t *hp, int i)
@@ -78,6 +77,26 @@ void min_heap_heapify(min_heap_t *hp, int i)
         swap(&(hp->elem[i]), &(hp->elem[smallest]));
         min_heap_heapify(hp, smallest);
     }
+}
+
+void erl_nif_term_print(merger_item_t term)
+{
+    ErlNifBinary keyBin, valBin;
+    char *key = NULL, *val = NULL;
+
+    if(!enif_inspect_binary(term.env, term.key, &keyBin)) return ;
+    if(!enif_inspect_binary(term.env, term.val, &valBin)) return;
+
+    key = (char *) enif_alloc(keyBin.size + 1);
+    memcpy(key, keyBin.data, keyBin.size);
+    key[keyBin.size] = '\0';
+
+    val = (char *) enif_alloc(valBin.size + 1);
+    memcpy(val, valBin.data, valBin.size);
+    val[valBin.size] = '\0';
+
+    printf("key: %.*s\n", (int) keyBin.size + 1, key);
+    printf("value: %.*s\n", (int) valBin.size + 1, val);
 }
 
 int min_heap_put(min_heap_t *hp, merger_item_t *n) {
