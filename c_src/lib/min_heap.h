@@ -1,5 +1,6 @@
 #include <stdio.h>
 
+#include "../utf8_collation/collate_json.h"
 #include "util.h"
 
 #ifndef MINHEAP_H

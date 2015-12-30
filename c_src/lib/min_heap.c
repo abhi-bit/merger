@@ -36,30 +36,40 @@ int less_fun(merger_item_t *elem1, merger_item_t *elem2)
 {
     ErlNifBinary key1Bin, key2Bin;
     char *key1 = NULL, *key2 = NULL;
+    sized_buf *buf1 = malloc(sizeof(sized_buf));
+    sized_buf *buf2 = malloc(sizeof(sized_buf));
+    int result = 0;
 
     if(!enif_inspect_binary(elem1->env, elem1->key, &key1Bin)) return 0;
     if(!enif_inspect_binary(elem2->env, elem2->key, &key2Bin)) return 0;
 
-    key1 = (char *) enif_alloc(key1Bin.size + 1);
-    memcpy(key1, key1Bin.data, key1Bin.size);
-    key1[key1Bin.size] = '\0';
+    key1 = (char *) enif_alloc(key1Bin.size + 2);
+    key1[0] = '"';
+    memcpy(key1 + 1, key1Bin.data, key1Bin.size);
+    key1[key1Bin.size + 1] = '"';
 
-    key2 = (char *) enif_alloc(key2Bin.size + 1);
-    memcpy(key2, key2Bin.data, key2Bin.size);
-    key2[key2Bin.size] = '\0';
+    key2 = (char *) enif_alloc(key2Bin.size + 2);
+    key2[0] ='"';
+    memcpy(key2 + 1, key2Bin.data, key2Bin.size);
+    key2[key2Bin.size + 1] = '"';
 
-    size_t length = (key2Bin.size < key1Bin.size) ?
-                     key2Bin.size :
-                     key1Bin.size;
+    printf("key 1: %.*s\n", (int) key1Bin.size, key1);
+    printf("key 2: %.*s\n", (int) key2Bin.size, key2);
 
-    if (memcmp(key1, key2, length) < 0) {
-        return 1;
-    } else {
-        return 0;
-    }
+    buf1->buf = key1;
+    buf1->size = key1Bin.size + 2;
 
-    free(key1);
-    free(key2);
+    buf2->buf = key2;
+    buf2->size = key2Bin.size + 2;
+
+    result = CollateJSON((const sized_buf*) buf1,
+                        (const sized_buf*) buf2,
+                        kCollateJSON_Unicode);
+
+    free(buf1);
+    free(buf2);
+
+    return result;
 }
 
 void min_heap_heapify(min_heap_t *hp, int i)
