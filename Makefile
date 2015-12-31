@@ -45,6 +45,7 @@ clean:
 	rm -rf logs
 	rm -rf test/*.beam
 	rm -rf erl_prog/*.beam
+	rm -rf c_src/utf8_collation/*.o
 
 deps: ./deps/
 	./rebar get-deps update-deps

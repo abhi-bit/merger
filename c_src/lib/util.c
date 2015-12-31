@@ -1,3 +1,6 @@
+#include <stdio.h>
+#include <string.h>
+
 #include "atoms.h"
 #include "util.h"
 
@@ -24,23 +27,26 @@ merger_make_error(ErlNifEnv* env, ERL_NIF_TERM data)
     return enif_make_tuple2(env, MERGER_ATOM_ERROR, data);
 }
 
-merger_item_t*
-merger_item_create(ERL_NIF_TERM key, ERL_NIF_TERM val)
+void
+merger_item_create(ErlNifBinary keyBin, ErlNifBinary valBin, merger_item_t* *ret)
 {
-    merger_item_t* ret = (merger_item_t*) malloc(sizeof(merger_item_t));
-    if(!ret) return NULL;
+    char *key = NULL, *val = NULL;
 
-    ret->env = enif_alloc_env();
-    if(!ret->env) {
-        free(ret);
-        return NULL;
-    }
+    key = (char *) enif_alloc(keyBin.size + 2);
+    key[0] = '"';
+    memcpy(key + 1, keyBin.data, keyBin.size);
+    key[keyBin.size + 1] = '"';
 
-    if (key != 0)
-        ret->key = enif_make_copy(ret->env, key);
-    ret->val = enif_make_copy(ret->env, val);
+    val = (char *) enif_alloc(valBin.size + 2);
+    val[0] ='"';
+    memcpy(val + 1, valBin.data, valBin.size);
+    val[valBin.size + 1] = '"';
 
-    return ret;
+    (*ret)->key->buf = key;
+    (*ret)->key->size = keyBin.size + 2;
+
+    (*ret)->val->buf = val;
+    (*ret)->val->size = valBin.size + 2;
 }
 
 void

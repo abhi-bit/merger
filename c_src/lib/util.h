@@ -4,15 +4,19 @@
 #include "merger.h"
 #include "merger_ftypes.h"
 
+typedef struct _sized_buf {
+    char                *buf;
+    size_t              size;
+} sized_buf;
+
 typedef struct _merger_item_t
 {
-    ErlNifEnv*              env;
-    ERL_NIF_TERM            key;
-    ERL_NIF_TERM            val;
+    ErlNifEnv           *env;
+    sized_buf           *key;
+    sized_buf           *val;
 } merger_item_t;
 
-
-merger_item_t* merger_item_create(ERL_NIF_TERM key, ERL_NIF_TERM val);
+void merger_item_create(ErlNifBinary key, ErlNifBinary val, merger_item_t **item);
 void merger_item_destroy(merger_item_t* item);
 
 ERL_NIF_TERM merger_make_atom(ErlNifEnv* env, const char* name);

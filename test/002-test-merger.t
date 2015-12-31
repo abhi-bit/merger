@@ -16,10 +16,10 @@ main([]) ->
 
 test_basic() ->
     {ok, C} = merger:new(),
-    etap:is(merger:in(C, <<"foo">>, "bar"), ok, "Stored a key"),
-    etap:is(merger:in(C, <<"bar">>, "foo"), ok, "Stored a key"),
+    etap:is(merger:in(C, "foo", "bar"), ok, "Stored a key"),
+    etap:is(merger:in(C, "bar", "foo"), ok, "Stored a key"),
     etap:is(merger:size(C), {ok, 2}, "Correct size for heap"),
-    etap:is(merger:out(C), {ok, {<<"bar">>,"foo"}}, "Retrieved a key"),
+    etap:is(merger:out(C), {ok, {<<"\"bar\"">>,<<"\"foo\"">>}}, "Retrieved a key"),
     etap:is(merger:size(C), {ok, 1}, "Correct size after delete"),
-    etap:is(merger:out(C), {ok, {<<"foo">>,"bar"}}, "Retrieved another key"),
+    etap:is(merger:out(C), {ok, {<<"\"foo\"">>,<<"\"bar\"">>}}, "Retrieved another key"),
     etap:is(merger:size(C), {ok, 0}, "Emptied the heap").

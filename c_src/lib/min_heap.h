@@ -10,11 +10,6 @@
 #define RCHILD(x) 2 * x + 2
 #define PARENT(x) (x - 1) / 2
 
-typedef struct _sized_buf {
-    char                *buf;
-    size_t              size;
-} sized_buf;
-
 typedef struct node {
     sized_buf           *data;
     int                 i; //Index of array
@@ -48,8 +43,8 @@ min_heap_t *min_heap_create(); //TODO: pass options to it
 void    min_heap_destroy(min_heap_t *h);
 void    min_heap_clear(min_heap_t *h, int root); //TODO: Fix implementation
 
-int     min_heap_get(min_heap_t *h, void** value); //TODO: Fix implementation
-int     min_heap_put(min_heap_t *h, merger_item_t *n);
+int     min_heap_get(min_heap_t *h, merger_item_t** value); //TODO: Fix implementation
+int     min_heap_put(min_heap_t *h, merger_item_t *val);
 void    min_heap_delete_min_node(min_heap_t *h);
 void    min_heap_iter(min_heap_t *h, int index);
 int     min_heap_size(min_heap_t *h);

@@ -3,6 +3,8 @@
 #include "lib/min_heap.h"
 #include "lib/util.h"
 
+#include <string.h>
+
 typedef struct {
     min_heap_t*     heap;
     ErlNifMutex*    lock;
@@ -94,44 +96,70 @@ error:
 ERL_NIF_TERM
 merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    merger_nif_heap_t* mh;
-    merger_item_t* val;
-    int ret;
+    merger_nif_heap_t* mh = NULL;
+    merger_item_t* item = NULL;
+    ErlNifBinary keyBin, valBin;
+    ERL_NIF_TERM ret;
 
     if(argc != 1)
         return enif_make_badarg(env);
     if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
 
-    enif_mutex_lock(mh->lock);
-    ret = min_heap_get(mh->heap, (void**) &val);
-    enif_mutex_unlock(mh->lock);
-
-    if(!ret)
+    if (!min_heap_get(mh->heap, &item))
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
-    return merger_make_ok(env, enif_make_tuple2(env, val->key, val->val));
+    if (!enif_alloc_binary(item->key->size, &keyBin))
+        return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
+    memcpy(keyBin.data, item->key->buf, item->key->size);
+
+    if (!enif_alloc_binary(item->val->size, &valBin))
+        return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
+    memcpy(valBin.data, item->val->buf, item->val->size);
+
+    ret = merger_make_ok(env, enif_make_tuple2(env,
+                                               enif_make_binary(env, &keyBin),
+                                               enif_make_binary(env, &valBin)));
+
+    enif_release_binary(&keyBin);
+    enif_release_binary(&valBin);
+    enif_free(item);
+
+    return ret;
 }
 
 ERL_NIF_TERM
 merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
-    merger_nif_heap_t* mh;
-    merger_item_t* item;
+    merger_nif_heap_t* mh = NULL;
+    ErlNifBinary keyBin, valBin;
     int ret;
 
-    if(argc != 3)
-        return enif_make_badarg(env);
-    if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
-        return enif_make_badarg(env);
-
-    item = merger_item_create(argv[1], argv[2]);
-    if(!item)
+    merger_item_t* item = (merger_item_t *) malloc(sizeof(merger_item_t));
+    if (!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
-    enif_mutex_lock(mh->lock);
+    item->env = enif_alloc_env();
+    if(!item->env) {
+        enif_free(item);
+        return 0;
+    }
+
+    item->key = (sized_buf *) enif_alloc(sizeof(sized_buf));
+    item->val = (sized_buf *) enif_alloc(sizeof(sized_buf));
+
+    if (argc != 3)
+        return enif_make_badarg(env);
+    if (!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
+        return enif_make_badarg(env);
+    if (!enif_inspect_iolist_as_binary(env, argv[1], &keyBin))
+        return enif_make_badarg(env);
+    if (!enif_inspect_iolist_as_binary(env, argv[2], &valBin))
+        return enif_make_badarg(env);
+
+    merger_item_create(keyBin, valBin, &item);
+
     ret = min_heap_put(mh->heap, item);
-    enif_mutex_unlock(mh->lock);
 
     if(ret) {
         return MERGER_ATOM_OK;
@@ -152,9 +180,7 @@ merger_nif_heap_size(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
 
-    enif_mutex_lock(mh->lock);
     size = min_heap_size(mh->heap);
-    enif_mutex_unlock(mh->lock);
 
     return merger_make_ok(env, enif_make_int(env, size));
 }
@@ -170,9 +196,7 @@ merger_nif_heap_list(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     if (!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void **) &mh))
         return enif_make_badarg(env);
 
-    enif_mutex_lock(mh->lock);
     min_heap_iter(mh->heap, 0);
-    enif_mutex_unlock(mh->lock);
 
     return enif_make_atom(env, "ok");
 }

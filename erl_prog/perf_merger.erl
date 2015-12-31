@@ -29,6 +29,7 @@ main(Count) ->
     {ok, C} = merger:new(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
+    random:seed(erlang:now()),
     RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
     Start = now_us(erlang:now()),
     C = bench_in(C, lists:nth(1, RandomStrings)),
@@ -63,6 +64,7 @@ get_random_string(Length, AllowedChars) ->
 bench_in(C, []) ->
     C;
 bench_in(C, [H|T]) ->
+    % io:format("Inserting ~p~n", [H]),
     ok = merger:in(C, H, "foo"),
     bench_in(C, T).
 
