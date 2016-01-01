@@ -135,7 +135,7 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     ErlNifBinary keyBin, valBin;
     int ret;
 
-    merger_item_t* item = (merger_item_t *) malloc(sizeof(merger_item_t));
+    merger_item_t* item = (merger_item_t *) enif_alloc(sizeof(merger_item_t));
     if (!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 

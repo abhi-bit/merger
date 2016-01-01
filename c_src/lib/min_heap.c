@@ -18,7 +18,7 @@ int min_heap_size(min_heap_t *hp)
 min_heap_t* min_heap_create()
 {
     min_heap_t *hp;
-    hp = malloc(sizeof(min_heap_t));
+    hp = enif_alloc(sizeof(min_heap_t));
     if (!hp) return NULL;
 
     hp->size = 0;
