@@ -9,6 +9,17 @@
 }).
 
 main(Count) ->
+    case whereis(merger) of
+        undefined ->
+            ok;
+        Pid ->
+            catch exit(Pid, kill)
+    end,
+    erlang:register(merger, self()),
+    % eprof tracing
+    eprof:start(),
+    eprof:start_profiling([erlang:whereis(merger)]),
+
     {ok, State} = init(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
@@ -18,7 +29,9 @@ main(Count) ->
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),
     _NNewState = bench_out(NewState),
     End = now_us(erlang:now()),
-    io:format("~p ms~n", [(End - Start) / 1000]).
+    io:format("~p ms~n", [(End - Start) / 1000]),
+    eprof:stop_profiling(),
+    eprof:analyze(total).
 
 now_us({MegaSecs,Secs,MicroSecs}) ->
         (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
@@ -26,7 +39,8 @@ now_us({MegaSecs,Secs,MicroSecs}) ->
 init() ->
     State = #state{
         rows = couch_skew:new(),
-        less_fun = fun({_, _, A}, {_, _, B}) -> A > B end
+        %%less_fun = fun({_, _, A}, {_, _, B}) -> A > B end
+        less_fun = fun couch_ejson_compare:less/2
     },
     {ok, State}.
 
@@ -49,7 +63,7 @@ bench_in(State, [H|T]) ->
         rows = Rows,
         poped = _Poped
       } = State,
-    Rows2 = couch_skew:in({pid, ref, H}, LessFun, Rows),
+    Rows2 = couch_skew:in(H, LessFun, Rows),
     NewState = State#state{
         rows = Rows2
     },
@@ -63,8 +77,8 @@ bench_out(State) ->
     } = State,
     case couch_skew:size(Rows) > 0 of
     true ->
-        {{Pid, Ref, MinRow}, Rows2} = couch_skew:out(LessFun, Rows),
-        Poped2 = [{Pid, Ref, MinRow} | Poped],
+        {MinRow, Rows2} = couch_skew:out(LessFun, Rows),
+        Poped2 = [MinRow | Poped],
         NewState = State#state{
             rows = Rows2,
             poped = Poped2

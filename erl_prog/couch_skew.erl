@@ -1,6 +1,6 @@
 -module(couch_skew).
 
--export([new/0, size/1, in/3, out/2, min/1, less_fun/2]).
+-export([new/0, size/1, in/3, out/2, min/1]).
 
 -define(null, []).
 
@@ -11,9 +11,6 @@ size(?null) ->
     0;
 size({Sz, _, _, _}) ->
     Sz.
-
-less_fun(A, B) ->
-    A > B.
 
 in(X, _LessFun, ?null) ->
     {1, X, ?null, ?null};
@@ -32,9 +29,9 @@ merge(_LessFun, ?null, B) ->
     B;
 merge(LessFun, {_, Xa, _, _} = A, {_, Xb, _, _} = B) ->
     case LessFun(Xa, Xb) of
-    true ->
+    1 ->
         join(LessFun, A, B);
-    false ->
+    -1 ->
         join(LessFun, B, A)
     end.
 

@@ -19,8 +19,8 @@ TEST_MODULES = \
 
 all: build
 
-utf: merger collate_json atoms min_heap util
-	$(CC) $(DEPENDENCIES) $(FLAGS) -L$(ERL_INTERFACE_LIBS) -lerl_interface \
+utf: merger collate_json atoms util
+	$(CC) -O3 $(DEPENDENCIES) $(FLAGS) -L$(ERL_INTERFACE_LIBS) -lerl_interface \
 		$(ICU_LIB_SEARCHPATH) -lei -licui18n -licuuc -licudata -o priv/merger.so
 	erlc -o ebin src/*.erl
 	
