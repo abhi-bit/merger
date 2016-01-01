@@ -34,14 +34,14 @@ void swap(merger_item_t *n1, merger_item_t *n2)
 
 void min_heap_heapify(min_heap_t *hp, int i)
 {
-    int smallest = (LCHILD(i) < hp->size && CollateJSON(hp->elem[LCHILD(i)].key,
+    int smallest = (LCHILD(i) < hp->size && (CollateJSON(hp->elem[LCHILD(i)].key,
                                                         hp->elem[i].key,
-                                                        kCollateJSON_Unicode))
+                                                        kCollateJSON_Unicode) <= 0))
                                                         ? LCHILD(i) : i;
 
-    if (RCHILD(i) < hp->size && CollateJSON(hp->elem[RCHILD(i)].key,
+    if (RCHILD(i) < hp->size && (CollateJSON(hp->elem[RCHILD(i)].key,
                                             hp->elem[smallest].key,
-                                            kCollateJSON_Unicode)) {
+                                            kCollateJSON_Unicode) <= 0)) {
                     smallest = RCHILD(i);
     }
 
@@ -63,13 +63,11 @@ int min_heap_put(min_heap_t *hp, merger_item_t *val) {
     item.val = val->val;
 
     int i = (hp->size)++;
-    while (i) {
-        if (CollateJSON(item.key,
+    while (i && (CollateJSON(item.key,
                             hp->elem[PARENT(i)].key,
-                            kCollateJSON_Unicode)) {
+                            kCollateJSON_Unicode) <= 0)) {
             hp->elem[i] = hp->elem[PARENT(i)];
             i = PARENT(i);
-        }
     }
     hp->elem[i] = item;
 
