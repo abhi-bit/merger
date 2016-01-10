@@ -162,6 +162,10 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
                                                enif_make_binary(env, item->key),
                                                enif_make_binary(env, item->val)));
 
+    //TODO: looks like key and val free calls are slowing down things
+    //verify if enif_free_env will take care of it already
+    enif_free(item->key);
+    enif_free(item->val);
     enif_free_env(item->env);
     enif_free(item);
 

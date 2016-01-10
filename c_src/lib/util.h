@@ -1,8 +1,12 @@
 #ifndef MERGER_UTIL_H
 #define MERGER_UTIL_H
 
+#include <stdio.h>
+
 #include "merger.h"
 #include "merger_ftypes.h"
+
+#define PRINT_DEBUG printf("%s %s %d\n", __FILE__, __FUNCTION__, __LINE__)
 
 typedef struct _sized_buf {
     char                *buf;
@@ -12,8 +16,8 @@ typedef struct _sized_buf {
 typedef struct _merger_item_t
 {
     ErlNifEnv           *env;
-    sized_buf           *key;
-    sized_buf           *val;
+    ErlNifBinary        *key;
+    ErlNifBinary        *val;
 } merger_item_t;
 
 void merger_item_create(ErlNifBinary key, ErlNifBinary val, merger_item_t **item);

@@ -10,7 +10,7 @@
 #define COUCH_COLLATE_JSON_H
 
 #include <stdlib.h>
-#include "../lib/min_heap.h"
+#include "../lib/util.h"
 
 typedef enum CollateJSONMode {
     kCollateJSON_Unicode, /* Compare strings as Unicode (CouchDB's default) */
