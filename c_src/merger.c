@@ -6,21 +6,29 @@
 #include "lib/atoms.h"
 #include "lib/binomial_heap.h"
 #include "lib/merger.h"
-#include "utf8_collation/collate_json.h"
 #include "lib/util.h"
+#include "utf8_collation/couch_ejson_compare.h"
 
 typedef struct {
-    struct heap     *hp;
-    long int        size;
+    struct heap         *hp;
+    long int            size;
 } merger_nif_heap_t;
 
 ErlNifResourceType* MERGER_NIF_RES;
+
+static ERL_NIF_TERM ATOM_TRUE;
+static ERL_NIF_TERM ATOM_FALSE;
+static ERL_NIF_TERM ATOM_NULL;
+static ERL_NIF_TERM ATOM_ERROR;
 
 void merger_nif_heap_destroy(ErlNifEnv* env, void* obj);
 
 static int
 load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
 {
+    UErrorCode status = U_ZERO_ERROR;
+    int i, j;
+    couch_ejson_global_ctx_t *globalCtx;
     merger_init_atoms(env);
 
     MERGER_NIF_RES = merger_init_res(
@@ -30,6 +38,56 @@ load(ErlNifEnv* env, void** priv, ERL_NIF_TERM info)
     if(MERGER_NIF_RES == NULL) {
         return 1;
     }
+
+    globalCtx = (couch_ejson_global_ctx_t *) enif_alloc(sizeof(couch_ejson_global_ctx_t));
+
+    if (globalCtx == NULL) {
+        return 1;
+    }
+
+    if (!enif_get_int(env, info, &globalCtx->numCollators)) {
+        return 2;
+    }
+
+    if (globalCtx->numCollators < 1) {
+        return 3;
+    }
+
+    globalCtx->collMutex = enif_mutex_create("coll_mutex");
+
+    if (globalCtx->collMutex == NULL) {
+        return 4;
+    }
+
+    globalCtx->collators = (UCollator **) enif_alloc(sizeof(UCollator *) * globalCtx->numCollators);
+
+    if (globalCtx->collators == NULL) {
+        enif_mutex_destroy(globalCtx->collMutex);
+        return 5;
+    }
+
+    for (i = 0; i < globalCtx->numCollators; i++) {
+        globalCtx->collators[i] = ucol_open("", &status);
+
+        if (U_FAILURE(status)) {
+            for (j = 0; j < i; j++) {
+                ucol_close(globalCtx->collators[j]);
+            }
+
+            enif_free(globalCtx->collators);
+            enif_mutex_destroy(globalCtx->collMutex);
+
+            return 5;
+        }
+    }
+
+    globalCtx->collStackTop = 0;
+    *priv = globalCtx;
+
+    ATOM_TRUE = enif_make_atom(env, "true");
+    ATOM_FALSE = enif_make_atom(env, "false");
+    ATOM_NULL = enif_make_atom(env, "null");
+    ATOM_ERROR = enif_make_atom(env, "error");
 
     return 0;
 }
@@ -47,9 +105,18 @@ upgrade(ErlNifEnv* env, void** priv, void** old_priv, ERL_NIF_TERM info)
 }
 
 static void
-unload(ErlNifEnv* env, void* priv)
+unload(ErlNifEnv* env, void* priv_data)
 {
-    return;
+    couch_ejson_global_ctx_t *globalCtx = (couch_ejson_global_ctx_t *) priv_data;
+    int i;
+
+    for (i = 0; i < globalCtx->numCollators; i++) {
+        ucol_close(globalCtx->collators[i]);
+    }
+
+    enif_free(globalCtx->collators);
+    enif_mutex_destroy(globalCtx->collMutex);
+    enif_free(globalCtx);
 }
 
 static struct heap*
@@ -61,29 +128,37 @@ heap_create()
 }
 
 static int
-less_fun(struct heap_node *_a, struct heap_node *_b)
+less_fun(struct heap *h, struct heap_node *_a, struct heap_node *_b)
 {
-    sized_buf *key1Buf = NULL, *key2Buf = NULL;
+    couch_ejson_ctx_t ctx;
     merger_item_t *a, *b;
+    int result;
     a = (merger_item_t *) heap_node_value(_a);
     b = (merger_item_t *) heap_node_value(_b);
-    int result = UINT_MAX;
 
-    key1Buf = enif_alloc(sizeof(sized_buf));
-    key2Buf = enif_alloc(sizeof(sized_buf));
+    char *keys;
 
-    key1Buf->buf = (char *) a->key->data;
-    key1Buf->size = a->key->size;
+    keys = (char *) enif_alloc(a->key->size + b->key->size + 2);
+    if (keys == NULL) {
+        return enif_make_tuple2(h->env,
+                                ATOM_ERROR,
+                                enif_make_atom(h->env, "Failed to allocate memory"));
+    }
 
-    key2Buf->buf = (char *) b->key->data;
-    key2Buf->size = b->key->size;
+    memcpy(keys, a->key->data, a->key->size);
+    keys[a->key->size] = '\0';
+    memcpy(keys + a->key->size + 1, b->key->data, b->key->size);
+    keys[a->key->size + 1 + b->key->size] = '\0';
 
-    result = CollateJSON(key1Buf,
-                        key2Buf,
-                        kCollateJSON_Unicode);
+    ctx.env = h->env;
+    ctx.error = 0;
+    ctx.errorMsg = NULL;
+    ctx.coll = NULL;
+    ctx.globalCtx = (couch_ejson_global_ctx_t *) enif_priv_data(h->env);
 
-    enif_free(key1Buf);
-    enif_free(key2Buf);
+    result = less_json(keys, keys + a->key->size + 1, &ctx);
+    release_coll(&ctx);
+    enif_free(keys);
 
     return result <= 0;
 }
@@ -125,6 +200,7 @@ merger_nif_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if(mh->hp == NULL)
         goto error;
     mh->size = 0;
+    mh->hp->env = env;
 
     ret = enif_make_resource(env, mh);
     enif_release_resource(mh);

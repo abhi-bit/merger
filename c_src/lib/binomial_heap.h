@@ -1,6 +1,8 @@
 #ifndef BINOMIAL_HEAP_H
 #define BINOMIAL_HEAP_H
 
+#include "util.h"
+
 #define NOT_IN_HEAP UINT_MAX
 
 struct heap_node {
@@ -14,21 +16,21 @@ struct heap_node {
 };
 
 struct heap {
-	struct heap_node* 	head;
-	/* We cache the minimum of the heap.
-	 * This speeds up repeated peek operations.
-	 */
-	struct heap_node*	min;
+	struct heap_node    *head;
+    ErlNifEnv           *env;
+	struct heap_node    *min;
 };
 
 /* item comparison function:
  * return 1 if a has higher prio than b, 0 otherwise
  */
-typedef int (*heap_prio_t)(struct heap_node* a, struct heap_node* b);
+typedef int (*heap_prio_t)(struct heap *h, struct heap_node* a,
+                           struct heap_node* b);
 
 static inline void heap_init(struct heap* heap)
 {
 	heap->head = NULL;
+    heap->env = NULL;
 	heap->min  = NULL;
 }
 
@@ -138,7 +140,7 @@ static inline void __heap_min(heap_prio_t higher_prio, struct heap* heap,
 	_prev = heap->head;
 	cur   = heap->head->next;
 	while (cur) {
-		if (higher_prio(cur, *node)) {
+		if (higher_prio(heap, cur, *node)) {
 			*node = cur;
 			*prev = _prev;
 		}
@@ -169,7 +171,7 @@ static inline void __heap_union(heap_prio_t higher_prio, struct heap* heap,
 			/* nothing to do, advance */
 			prev = x;
 			x    = next;
-		} else if (higher_prio(x, next)) {
+		} else if (higher_prio(heap, x, next)) {
 			/* x becomes the root of next */
 			x->next = next->next;
 			__heap_link(x, next);
@@ -211,7 +213,7 @@ static inline void heap_insert(heap_prio_t higher_prio, struct heap* heap,
 	node->parent = NULL;
 	node->next   = NULL;
 	node->degree = 0;
-	if (heap->min && higher_prio(node, heap->min)) {
+	if (heap->min && higher_prio(heap, node, heap->min)) {
 		/* swap min cache */
 		min = heap->min;
 		min->child  = NULL;
@@ -278,11 +280,11 @@ static inline void heap_decrease(heap_prio_t higher_prio, struct heap* heap,
 	if (!node->ref)
 		return;
 	if (heap->min != node) {
-		if (heap->min && higher_prio(node, heap->min))
+		if (heap->min && higher_prio(heap, node, heap->min))
 			__uncache_min(higher_prio, heap);
 		/* bubble up */
 		parent = node->parent;
-		while (parent && higher_prio(node, parent)) {
+		while (parent && higher_prio(heap, node, parent)) {
 			/* swap parent and node */
 			tmp           = parent->value;
 			parent->value = node->value;
