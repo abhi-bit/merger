@@ -52,7 +52,7 @@ now_us({MegaSecs,Secs,MicroSecs}) ->
 
 get_random_strings(Count, Length, AllowedChars) ->
     lists:foldl(fun(_, Acc) ->
-                    [get_random_string(Length, AllowedChars)] ++ Acc
+                    ["[\"" ++ get_random_string(Length, AllowedChars) ++ "\"]"] ++ Acc
                 end, [], lists:seq(1, Count)).
 
 get_random_string(Length, AllowedChars) ->

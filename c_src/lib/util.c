@@ -28,28 +28,6 @@ merger_make_error(ErlNifEnv* env, ERL_NIF_TERM data)
 }
 
 void
-merger_item_create(ErlNifBinary keyBin, ErlNifBinary valBin, merger_item_t* *ret)
-{
-    char *key = NULL, *val = NULL;
-
-    key = (char *) enif_alloc(keyBin.size + 2);
-    key[0] = '"';
-    memcpy(key + 1, keyBin.data, keyBin.size);
-    key[keyBin.size + 1] = '"';
-
-    val = (char *) enif_alloc(valBin.size + 2);
-    val[0] ='"';
-    memcpy(val + 1, valBin.data, valBin.size);
-    val[valBin.size + 1] = '"';
-
-    (*ret)->key->buf = key;
-    (*ret)->key->size = keyBin.size + 2;
-
-    (*ret)->val->buf = val;
-    (*ret)->val->size = valBin.size + 2;
-}
-
-void
 merger_item_destroy(merger_item_t* item)
 {
     if(!item) return;

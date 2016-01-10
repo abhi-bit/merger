@@ -9,16 +9,16 @@
 }).
 
 main(Count) ->
-    case whereis(merger) of
-        undefined ->
-            ok;
-        Pid ->
-            catch exit(Pid, kill)
-    end,
-    erlang:register(merger, self()),
-    % eprof tracing
-    eprof:start(),
-    eprof:start_profiling([erlang:whereis(merger)]),
+    %case whereis(merger) of
+    %    undefined ->
+    %        ok;
+    %    Pid ->
+    %        catch exit(Pid, kill)
+    %end,
+    %erlang:register(merger, self()),
+    %% eprof tracing
+    %eprof:start(),
+    %eprof:start_profiling([erlang:whereis(merger)]),
 
     {ok, State} = init(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -29,9 +29,9 @@ main(Count) ->
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),
     _NNewState = bench_out(NewState),
     End = now_us(erlang:now()),
-    io:format("~p ms~n", [(End - Start) / 1000]),
-    eprof:stop_profiling(),
-    eprof:analyze(total).
+    io:format("~p ms~n", [(End - Start) / 1000]).
+    %eprof:stop_profiling(),
+    %eprof:analyze(total).
 
 now_us({MegaSecs,Secs,MicroSecs}) ->
         (MegaSecs*1000000 + Secs)*1000000 + MicroSecs.
@@ -46,7 +46,7 @@ init() ->
 
 get_random_strings(Count, Length, AllowedChars) ->
     lists:foldl(fun(_, Acc) ->
-                    [get_random_string(Length, AllowedChars)] ++ Acc
+                    ["[\"" ++ get_random_string(Length, AllowedChars) ++ "\"]"] ++ Acc
                 end, [], lists:seq(1, Count)).
 
 get_random_string(Length, AllowedChars) ->

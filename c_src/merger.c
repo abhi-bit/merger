@@ -63,13 +63,29 @@ heap_create()
 static int
 less_fun(struct heap_node *_a, struct heap_node *_b)
 {
+    sized_buf *key1Buf = NULL, *key2Buf = NULL;
     merger_item_t *a, *b;
     a = (merger_item_t *) heap_node_value(_a);
     b = (merger_item_t *) heap_node_value(_b);
+    int result = UINT_MAX;
 
-    return (CollateJSON(a->key,
-                       b->key,
-                       kCollateJSON_Unicode) <= 0);
+    key1Buf = enif_alloc(sizeof(sized_buf));
+    key2Buf = enif_alloc(sizeof(sized_buf));
+
+    key1Buf->buf = (char *) a->key->data;
+    key1Buf->size = a->key->size;
+
+    key2Buf->buf = (char *) b->key->data;
+    key2Buf->size = b->key->size;
+
+    result = CollateJSON(key1Buf,
+                        key2Buf,
+                        kCollateJSON_Unicode);
+
+    enif_free(key1Buf);
+    enif_free(key2Buf);
+
+    return result <= 0;
 }
 
 static int
@@ -127,7 +143,6 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     merger_nif_heap_t* mh = NULL;
     merger_item_t* item = NULL;
-    ErlNifBinary keyBin, valBin;
     ERL_NIF_TERM ret;
 
     if(argc != 1)
@@ -143,20 +158,11 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
     mh->size--;
 
-    if (!enif_alloc_binary(item->key->size, &keyBin))
-        return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
-    memcpy(keyBin.data, item->key->buf, item->key->size);
-
-    if (!enif_alloc_binary(item->val->size, &valBin))
-        return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
-    memcpy(valBin.data, item->val->buf, item->val->size);
-
     ret = merger_make_ok(env, enif_make_tuple2(env,
-                                               enif_make_binary(env, &keyBin),
-                                               enif_make_binary(env, &valBin)));
+                                               enif_make_binary(env, item->key),
+                                               enif_make_binary(env, item->val)));
 
-    enif_release_binary(&keyBin);
-    enif_release_binary(&valBin);
+    enif_free_env(item->env);
     enif_free(item);
 
     return ret;
@@ -166,7 +172,6 @@ ERL_NIF_TERM
 merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     merger_nif_heap_t* mh = NULL;
-    ErlNifBinary keyBin, valBin;
     int ret;
 
     merger_item_t* item = (merger_item_t *) enif_alloc(sizeof(merger_item_t));
@@ -178,22 +183,17 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         enif_free(item);
         return 0;
     }
-
-    item->key = (sized_buf *) enif_alloc(sizeof(sized_buf));
-    item->val = (sized_buf *) enif_alloc(sizeof(sized_buf));
+    item->key = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
+    item->val = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
 
     if (argc != 3)
         return enif_make_badarg(env);
     if (!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
-    if (!enif_inspect_iolist_as_binary(env, argv[1], &keyBin))
+    if (!enif_inspect_iolist_as_binary(item->env, argv[1], item->key))
         return enif_make_badarg(env);
-    if (!enif_inspect_iolist_as_binary(env, argv[2], &valBin))
+    if (!enif_inspect_iolist_as_binary(item->env, argv[2], item->val))
         return enif_make_badarg(env);
-
-    merger_item_create(keyBin, valBin, &item);
-    //printf("Key from C: %.*s\n", (int) keyBin.size, (char *)keyBin.data);
-    //printf("Val from C: %.*s\n", (int) valBin.size, (char *)valBin.data);
 
     ret = heap_put(mh->hp, item);
 
