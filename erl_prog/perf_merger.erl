@@ -29,7 +29,7 @@ main(Count) ->
     {ok, C} = merger:new(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
-    % random:seed(erlang:now()),
+    random:seed(erlang:now()),
     RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
     Start = now_us(erlang:now()),
     C = bench_in(C, lists:nth(1, RandomStrings)),
@@ -65,15 +65,18 @@ bench_in(C, []) ->
     C;
 bench_in(C, [H|T]) ->
     % io:format("Inserting ~p~n", [H]),
-    ok = merger:in(C, H, "foo"),
+    % ok = merger:in(C, H, "foo"),
+    Ref = make_ref(),
+    Pid = self(),
+    ok = merger:in(C, H, {"foo", Ref, Pid}),
     bench_in(C, T).
 
 bench_out(C) ->
     case merger:size(C) > 0 of
     true ->
             try merger:out(C) of
-                {ok, _Row} ->
-                    % io:format("Output row: ~p~n", [Row]),
+                {ok, Row} ->
+                    io:format("Output row: ~p~n", [Row]),
                     bench_out(C);
                 {error, internal_error} ->
                     C

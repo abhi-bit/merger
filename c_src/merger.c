@@ -21,6 +21,13 @@ static ERL_NIF_TERM ATOM_FALSE;
 static ERL_NIF_TERM ATOM_NULL;
 static ERL_NIF_TERM ATOM_ERROR;
 
+static int load(ErlNifEnv*, void**, ERL_NIF_TERM);
+static void unload(ErlNifEnv*, void*);
+static __inline ERL_NIF_TERM merger_nif_new(ErlNifEnv*, int, const ERL_NIF_TERM[]);
+static __inline ERL_NIF_TERM merger_nif_heap_get(ErlNifEnv*, int, const ERL_NIF_TERM[]);
+static __inline ERL_NIF_TERM merger_nif_heap_put(ErlNifEnv*, int, const ERL_NIF_TERM[]);
+static __inline ERL_NIF_TERM merger_nif_heap_size(ErlNifEnv*, int, const ERL_NIF_TERM[]);
+static __inline ERL_NIF_TERM merger_nif_heap_list(ErlNifEnv*, int, const ERL_NIF_TERM[]);
 void merger_nif_heap_destroy(ErlNifEnv* env, void* obj);
 
 static int
@@ -236,12 +243,11 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     ret = merger_make_ok(env, enif_make_tuple2(env,
                                                enif_make_binary(env, item->key),
-                                               enif_make_binary(env, item->val)));
+                                               item->val));
 
     //TODO: looks like key and val free calls are slowing down things
     //verify if enif_free_env will take care of it already
     enif_free(item->key);
-    enif_free(item->val);
     enif_free_env(item->env);
     enif_free(item);
 
@@ -264,7 +270,6 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return 0;
     }
     item->key = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
-    item->val = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
 
     if (argc != 3)
         return enif_make_badarg(env);
@@ -272,8 +277,7 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     if (!enif_inspect_iolist_as_binary(item->env, argv[1], item->key))
         return enif_make_badarg(env);
-    if (!enif_inspect_iolist_as_binary(item->env, argv[2], item->val))
-        return enif_make_badarg(env);
+    item->val = argv[2];
 
     ret = heap_put(mh->hp, item);
 
@@ -329,4 +333,12 @@ static ErlNifFunc nif_funcs[] = {
     {"keys", 1, merger_nif_heap_list}
 };
 
-ERL_NIF_INIT(merger, nif_funcs, &load, &reload, &upgrade, &unload);
+#ifndef _MSC_VER
+#if defined (__SUNPRO_C) && (__SUNPRO_C >= 0x550)
+__global
+#elif defined __GNUC__
+__attribute__ ((visibility("default")))
+#endif
+
+#endif
+ERL_NIF_INIT(merger, nif_funcs, &load, &reload, &upgrade, &unload)
