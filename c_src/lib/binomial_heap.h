@@ -248,7 +248,7 @@ static inline void heap_union(heap_prio_t higher_prio,
 	addition->head = NULL;
 }
 
-static inline struct heap_node* heap_peek(heap_prio_t higher_prio,
+static inline struct heap_node* heap_sneak(heap_prio_t higher_prio,
 					  struct heap* heap)
 {
 	if (!heap->min)

@@ -5,6 +5,7 @@
 -export([
     new/0, new/1, new/2,
     out/1,
+    peek/1,
     in/3,
     size/1,
     keys/1
@@ -42,6 +43,8 @@ new_nif(_Options) ->
 out(_Heap) ->
     ?NOT_LOADED.
 
+peek(_Heap) ->
+    ?NOT_LOADED.
 
 in(_Heap, _Key, _Val) ->
     ?NOT_LOADED.

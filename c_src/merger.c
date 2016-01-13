@@ -191,6 +191,14 @@ heap_get(struct heap *hp, merger_item_t **item)
     free(hn);
 }
 
+static void
+heap_peek(struct heap *hp, merger_item_t **item)
+{
+    struct heap_node *hn;
+    hn = heap_sneak(less_fun, hp);
+    *item = heap_node_value(hn);
+}
+
 ERL_NIF_TERM
 merger_nif_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -250,6 +258,29 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     enif_free(item->key);
     enif_free_env(item->env);
     enif_free(item);
+
+    return ret;
+}
+
+ERL_NIF_TERM
+merger_nif_heap_peek(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
+{
+    merger_nif_heap_t* mh = NULL;
+    merger_item_t* item = NULL;
+    ERL_NIF_TERM ret;
+
+    if(argc != 1)
+        return enif_make_badarg(env);
+    if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
+        return enif_make_badarg(env);
+
+    heap_peek(mh->hp, &item);
+    if(!item)
+        return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
+
+    ret = merger_make_ok(env, enif_make_tuple2(env,
+                                               enif_make_binary(env, item->key),
+                                               item->val));
 
     return ret;
 }
@@ -328,6 +359,7 @@ merger_nif_heap_destroy(ErlNifEnv *env, void *obj)
 static ErlNifFunc nif_funcs[] = {
     {"new_nif", 1, merger_nif_new},
     {"out", 1, merger_nif_heap_get},
+    {"peek", 1, merger_nif_heap_peek},
     {"in", 3, merger_nif_heap_put},
     {"size", 1, merger_nif_heap_size},
     {"keys", 1, merger_nif_heap_list}
