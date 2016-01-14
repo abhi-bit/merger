@@ -149,7 +149,7 @@ less_fun(struct heap *h, struct heap_node *_a, struct heap_node *_b)
     if (keys == NULL) {
         return enif_make_tuple2(h->env,
                                 ATOM_ERROR,
-                                enif_make_atom(h->env, "Failed to allocate memory"));
+                                enif_make_atom(h->env, "mem_alloc_failure"));
     }
 
     memcpy(keys, a->key->data, a->key->size);
@@ -241,6 +241,11 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
 
+    if (mh->size <= 0)
+        return enif_make_tuple2(env,
+                                ATOM_ERROR,
+                                enif_make_atom(env, "heap_empty"));
+
     heap_get(mh->hp, &item);
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
@@ -274,6 +279,11 @@ merger_nif_heap_peek(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
 
+    if (mh->size <= 0)
+        return enif_make_tuple2(env,
+                                ATOM_ERROR,
+                                enif_make_atom(env, "heap_empty"));
+
     heap_peek(mh->hp, &item);
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
@@ -298,7 +308,9 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
     item->env = enif_alloc_env();
     if(!item->env) {
         enif_free(item);
-        return 0;
+        return enif_make_tuple2(env,
+                                ATOM_ERROR,
+                                enif_make_atom(env, "mem_alloc_failure"));
     }
     item->key = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
 
