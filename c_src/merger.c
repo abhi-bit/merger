@@ -233,20 +233,20 @@ ERL_NIF_TERM
 merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 {
     merger_nif_heap_t* mh = NULL;
-    merger_item_t* item = NULL;
+    merger_item_t* item = enif_alloc(sizeof(merger_item_t));
     ERL_NIF_TERM ret;
 
     if(argc != 1)
         return enif_make_badarg(env);
     if(!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
-
     if (mh->size <= 0)
         return enif_make_tuple2(env,
                                 ATOM_ERROR,
                                 enif_make_atom(env, "heap_empty"));
 
     heap_get(mh->hp, &item);
+
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
@@ -256,11 +256,12 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     ret = merger_make_ok(env, enif_make_tuple2(env,
                                                enif_make_binary(env, item->key),
-                                               item->val));
+                                               enif_make_binary(env, item->val)));
 
     //TODO: looks like key and val free calls are slowing down things
     //verify if enif_free_env will take care of it already
     enif_free(item->key);
+    enif_free(item->val);
     enif_free_env(item->env);
     enif_free(item);
 
@@ -290,7 +291,7 @@ merger_nif_heap_peek(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
 
     ret = merger_make_ok(env, enif_make_tuple2(env,
                                                enif_make_binary(env, item->key),
-                                               item->val));
+                                               enif_make_binary(env, item->val)));
 
     return ret;
 }
@@ -313,6 +314,7 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
                                 enif_make_atom(env, "mem_alloc_failure"));
     }
     item->key = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
+    item->val = (ErlNifBinary *)enif_alloc(sizeof(ErlNifBinary));
 
     if (argc != 3)
         return enif_make_badarg(env);
@@ -320,7 +322,9 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     if (!enif_inspect_iolist_as_binary(item->env, argv[1], item->key))
         return enif_make_badarg(env);
-    item->val = argv[2];
+    if (!enif_inspect_iolist_as_binary(item->env, argv[2], item->val))
+        return enif_make_badarg(env);
+    //item->val = argv[2];
 
     ret = heap_put(mh->hp, item);
 

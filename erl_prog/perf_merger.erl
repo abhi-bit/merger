@@ -1,6 +1,6 @@
 -module(perf_merger).
 
--export([main/1]).
+-export([main/1, get_random_string/2]).
 
 main(Count) ->
     % case whereis(merger) of
@@ -68,7 +68,7 @@ bench_in(C, [H|T]) ->
     % ok = merger:in(C, H, "foo"),
     Ref = make_ref(),
     Pid = self(),
-    ok = merger:in(C, H, {"foo", Ref, Pid}),
+    ok = merger:in(C, [H], [{<<"foo">>, Ref, Pid}]),
     bench_in(C, T).
 
 bench_out(C) ->
