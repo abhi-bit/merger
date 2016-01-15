@@ -68,15 +68,15 @@ bench_in(C, [H|T]) ->
     % ok = merger:in(C, H, "foo"),
     Ref = make_ref(),
     Pid = self(),
-    ok = merger:in(C, [H], [{<<"foo">>, Ref, Pid}]),
+    ok = merger:in(C, H, {"foo", Ref, Pid}),
     bench_in(C, T).
 
 bench_out(C) ->
     case merger:size(C) > 0 of
     true ->
             try merger:out(C) of
-                {ok, Row} ->
-                    io:format("Output row: ~p~n", [Row]),
+                {ok, _Row} ->
+                    %io:format("Output row: ~p~n", [Row]),
                     bench_out(C);
                 {error, internal_error} ->
                     C

@@ -17,7 +17,7 @@ typedef struct _merger_item_t
 {
     ErlNifEnv           *env;
     ErlNifBinary        *key;
-    ErlNifBinary        *val;
+    ERL_NIF_TERM        val;
 } merger_item_t;
 
 void merger_item_create(ErlNifBinary key, ErlNifBinary val, merger_item_t **item);
