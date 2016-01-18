@@ -12,6 +12,7 @@
 typedef struct {
     struct heap         *hp;
     long int            size;
+    ErlNifMutex         *lock;
 } merger_nif_heap_t;
 
 ErlNifResourceType* MERGER_NIF_RES;
@@ -217,6 +218,9 @@ merger_nif_new(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         goto error;
     mh->size = 0;
     mh->hp->env = env;
+    mh->lock = enif_mutex_create("merger_lock");
+    if (mh->lock == NULL)
+        goto error;
 
     ret = enif_make_resource(env, mh);
     enif_release_resource(mh);
@@ -245,14 +249,18 @@ merger_nif_heap_get(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_tuple2(env,
                                 ATOM_ERROR,
                                 enif_make_atom(env, "heap_empty"));
+    enif_mutex_lock(mh->lock);
     heap_get(mh->hp, &item);
+    enif_mutex_unlock(mh->lock);
 
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
     if(!mh->size)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
+    enif_mutex_lock(mh->lock);
     mh->size--;
+    enif_mutex_unlock(mh->lock);
 
     ret = merger_make_ok(env, enif_make_tuple2(env,
                                                enif_make_binary(env, item->key),
@@ -284,7 +292,10 @@ merger_nif_heap_peek(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
                                 ATOM_ERROR,
                                 enif_make_atom(env, "heap_empty"));
 
+    enif_mutex_lock(mh->lock);
     heap_peek(mh->hp, &item);
+    enif_mutex_unlock(mh->lock);
+
     if(!item)
         return merger_make_error(env, MERGER_ATOM_INTERNAL_ERROR);
 
@@ -322,7 +333,9 @@ merger_nif_heap_put(ErlNifEnv* env, int argc, const ERL_NIF_TERM argv[])
         return enif_make_badarg(env);
     item->val = enif_make_copy(item->env, argv[2]);
 
+    enif_mutex_lock(mh->lock);
     ret = heap_put(mh->hp, item);
+    enif_mutex_unlock(mh->lock);
 
     if(ret) {
         mh->size++;
@@ -337,12 +350,18 @@ ERL_NIF_TERM
 merger_nif_heap_size(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
     merger_nif_heap_t *mh;
+    long size;
 
     if (argc != 1)
         return enif_make_badarg(env);
     if (!enif_get_resource(env, argv[0], MERGER_NIF_RES, (void**) &mh))
         return enif_make_badarg(env);
-    return enif_make_long(env, mh->size);
+
+    enif_mutex_lock(mh->lock);
+    size = mh->size;
+    enif_mutex_unlock(mh->lock);
+
+    return enif_make_long(env, size);
 }
 
 
@@ -364,6 +383,9 @@ merger_nif_heap_list(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 void
 merger_nif_heap_destroy(ErlNifEnv *env, void *obj)
 {
+    merger_nif_heap_t *mh = (merger_nif_heap_t *)obj;
+    if (mh->lock != NULL)
+        enif_mutex_destroy(mh->lock);
     return;
 }
 

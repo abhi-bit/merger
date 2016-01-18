@@ -7,7 +7,7 @@ main([]) ->
     code:add_pathz("test"),
     random:seed(erlang:now()),
 
-    etap:plan(14),
+    etap:plan(20),
 
     test_basic(),
     test_large_keys(),
@@ -37,13 +37,24 @@ test_large_keys() ->
     etap:is(merger:out(C), {ok, {list_to_binary(Key1),"foo"}}, "Retrieved a key").
 
 test_mapreduce_kv() ->
-    Key = <<"[\"pymc100\",\"VTKGNKUHMP\"]">>,
-    Val = <<"{\"id\":\"pymc100\",\"key\":[\"pymc100\",\"VTKGNKUHMP\"],\"value\":[100,100,\"1-00005bf\"]}">>,
+    Key1 = <<"[\"pymc1\",\"VTKGNKUHMP\"]">>,
+    Key10 = <<"[\"pymc10\",\"VTKGNKUHMP\"]">>,
+    Key100 = <<"[\"pymc100\",\"VTKGNKUHMP\"]">>,
+    Key9 = <<"[\"pymc9\",\"VTKGNKUHMP\"]">>,
+    Val1 = <<"{\"id\":\"pymc1\",\"key\":[\"pymc1\",\"VTKGNKUHMP\"],\"value\":[1,1,\"1-00005bf\"]}">>,
+    Val10 = <<"{\"id\":\"pymc10\",\"key\":[\"pymc10\",\"VTKGNKUHMP\"],\"value\":[10,10,\"1-00005bf\"]}">>,
+    Val100 = <<"{\"id\":\"pymc100\",\"key\":[\"pymc100\",\"VTKGNKUHMP\"],\"value\":[100,100,\"1-00005bf\"]}">>,
+    Val9 = <<"{\"id\":\"pymc9\",\"key\":[\"pymc9\",\"VTKGNKUHMP\"],\"value\":[9,9,\"1-00005bf\"]}">>,
     {ok, C} = merger:new(),
-    etap:is(merger:in(C, Key, Val), ok, "Stored a key"),
-    etap:is(merger:size(C), 1, "Correct size for heap"),
-    etap:is(merger:out(C), {ok,{<<"[\"pymc100\",\"VTKGNKUHMP\"]">>,
-         <<"{\"id\":\"pymc100\",\"key\":[\"pymc100\",\"VTKGNKUHMP\"],\"value\":[100,100,\"1-00005bf\"]}">>}}, "Retrieved a key").
+    etap:is(merger:in(C, Key10, Val10), ok, "Stored a key"),
+    etap:is(merger:in(C, Key9, Val9), ok, "Stored a key"),
+    etap:is(merger:in(C, Key100, Val100), ok, "Stored a key"),
+    etap:is(merger:in(C, Key1, Val1), ok, "Stored a key"),
+    etap:is(merger:size(C), 4, "Correct size for heap"),
+    etap:is(merger:out(C), {ok,{Key1, Val1}}, "Retrieved a key"),
+    etap:is(merger:out(C), {ok,{Key10, Val10}}, "Retrieved a key"),
+    etap:is(merger:out(C), {ok,{Key100, Val100}}, "Retrieved a key"),
+    etap:is(merger:out(C), {ok,{Key9, Val9}}, "Retrieved a key").
 
 get_random_string(Length) ->
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
