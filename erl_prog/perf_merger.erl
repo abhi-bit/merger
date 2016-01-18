@@ -30,9 +30,10 @@ main(Count) ->
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
     random:seed(erlang:now()),
-    RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
+    RandomStrings = [get_random_strings(Size, 4096, AllowedChars)],
+    Val = get_random_string(1024000, AllowedChars),
     Start = now_us(erlang:now()),
-    C = bench_in(C, lists:nth(1, RandomStrings)),
+    C = bench_in(C, lists:nth(1, RandomStrings), Val),
     QueueSize = merger:size(C),
     io:format("Queue size: ~p~n", [QueueSize]),
     bench_out(C),
@@ -61,15 +62,15 @@ get_random_string(Length, AllowedChars) ->
                                 AllowedChars)]  ++ Acc
     end, [], lists:seq(1, Length)).
 
-bench_in(C, []) ->
+bench_in(C, [], _Val) ->
     C;
-bench_in(C, [H|T]) ->
+bench_in(C, [H|T], Val) ->
     % io:format("Inserting ~p~n", [H]),
     % ok = merger:in(C, H, "foo"),
     Ref = make_ref(),
     Pid = self(),
-    ok = merger:in(C, H, {"foo", Ref, Pid}),
-    bench_in(C, T).
+    ok = merger:in(C, H, {Val, Ref, Pid}),
+    bench_in(C, T, Val).
 
 bench_out(C) ->
     case merger:size(C) > 0 of

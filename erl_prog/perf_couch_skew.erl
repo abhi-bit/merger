@@ -23,9 +23,10 @@ main(Count) ->
     {ok, State} = init(),
     AllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
     Size = list_to_integer(atom_to_list(lists:nth(1, Count))),
-    RandomStrings = [get_random_strings(Size, 20, AllowedChars)],
+    RandomStrings = [get_random_strings(Size, 4096, AllowedChars)],
+    Val = get_random_string(1024000, AllowedChars),
     Start = now_us(erlang:now()),
-    NewState = bench_in(State, lists:nth(1, RandomStrings)),
+    NewState = bench_in(State, lists:nth(1, RandomStrings), Val),
     io:format("Queue size: ~p~n", [couch_skew:size(NewState#state.rows)]),
     _NNewState = bench_out(NewState),
     End = now_us(erlang:now()),
@@ -39,8 +40,8 @@ now_us({MegaSecs,Secs,MicroSecs}) ->
 init() ->
     State = #state{
         rows = couch_skew:new(),
-        %%less_fun = fun({_, _, A}, {_, _, B}) -> A > B end
-        less_fun = fun couch_ejson_compare:less/2
+        less_fun = fun({K1, _V1}, {K2, _V2}) -> couch_ejson_compare:less(K1, K2) end
+        %less_fun = fun couch_ejson_compare:less/2
     },
     {ok, State}.
 
@@ -55,19 +56,19 @@ get_random_string(Length, AllowedChars) ->
                                 AllowedChars)]  ++ Acc
     end, [], lists:seq(1, Length)).
 
-bench_in(State, []) ->
+bench_in(State, [], _Val) ->
     State;
-bench_in(State, [H|T]) ->
+bench_in(State, [H|T], Val) ->
     #state{
         less_fun = LessFun,
         rows = Rows,
         poped = _Poped
       } = State,
-    Rows2 = couch_skew:in(H, LessFun, Rows),
+    Rows2 = couch_skew:in({H, Val}, LessFun, Rows),
     NewState = State#state{
         rows = Rows2
     },
-    bench_in(NewState, T).
+    bench_in(NewState, T, Val).
 
 bench_out(State) ->
     #state {
@@ -78,6 +79,7 @@ bench_out(State) ->
     case couch_skew:size(Rows) > 0 of
     true ->
         {MinRow, Rows2} = couch_skew:out(LessFun, Rows),
+        %% io:format("~p~n", [MinRow]),
         Poped2 = [MinRow | Poped],
         NewState = State#state{
             rows = Rows2,
